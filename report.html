@@ -13231,6 +13231,7 @@ Also, while the learning the left side rule in traffic has a beneficial efficien
 <li>waypoint - [left, right, forward] : 3</li>
 </ol>
 <p>So, the total number of states comes out to be 2 x 4 x 4 x 4 x 3 = 384. This is quite a lot of states, and will require a good quantity of trials to learn effectively. Given a simulation running for 100 trips, each taking about 10-20 moves, it will mean a significant amount of trips will be required to learn fully, though still in the realm of practicality.</p>
+<p>Since later I have removed inputs-left and inputs-right the total number of states now become 2x4x3 = 24.</p>
 
 </div>
 </div>
@@ -21574,64 +21575,72 @@ The reliability of the learner also approaches 100% by the end of the trial peri
 <p><strong>Answer:</strong></p>
 <p>State space was defined by me finally as (waypoint, light, oncoming). The expected optimal policy for the algorithm should have the following features:</p>
 <ol>
-<li><p>Any movement in a red light state should have the largest negative penalty. This would mean the agent has learnt the most basic traffic rule. For eexample, the agent in a state (forward, 'red', forward) shoud have None as the max Q action.</p>
+<li><p>Any movement in a red light state should have the largest negative penalty. This would mean the agent has learnt the most basic traffic rule. For example, the agent in a state (forward, 'red', forward) shoud have None as the max Q action.
+ ('forward', 'red', 'forward')
+  -- forward : -5.16
+  -- right : 0.02
+  -- None : 2.12
+  -- left : -5.19</p>
+<p>This seems to hold true for the policy created.</p>
 <ul>
 <li><p>since we ignored the state of left, the agent will not have reliably learnt the right turn rule of the traffic, where it is allowed to take right on a red light if there is no oncoming traffic from the left side.</p>
 <p>eg. the agent in state (right, 'red' , forward) and (right, 'red', 'left') should not have much difference and will likely just stay idle.</p>
+<p>('right', 'red', 'forward')
+-- forward : -9.55
+-- right : -9.19
+-- None : 1.06
+-- left : 0.00</p>
+<p>('right', 'red', 'left')
+-- forward : -10.36
+-- right : -9.12
+-- None : 1.47
+-- left : -8.56</p>
+<p>This is also true in the policy formed.</p>
 </li>
 </ul>
 </li>
 <li><p>vice versa most of the states in the 'green' light should encourage movement, but certain conditions should be satisfied.</p>
 <ul>
 <li><p>if the oncoming traffic is in a direction which will cause a collision, the action should be avoided.</p>
-<p>eg. the agent in a state (forward, 'green', backward) should have the highest Q state in either left of right.</p>
+<p>eg. it cannot turn left if oncoming traffic is going forward or right. So, there should be a huge penalty for left.</p>
+<p>('left', 'green', 'forward')
+-- forward : 0.65
+-- right : 0.21
+-- None : -4.88
+-- left : 0.00</p>
+<p>('left', 'green', 'right')
+-- forward : 0.16
+-- right : 0.05
+-- None : -3.96
+-- left : 0.00</p>
+<p>Although there should be huge penalty for left in the policy but the current policy will avoid any collision.</p>
 </li>
 <li><p>if the oncoming traffic is in the same direction as the waypoint, the waypoint direction should be given preference.</p>
-<p>eg. the agent in a state (forward, green, forward) should be ok with going forward, since it will not cause a collision and will get them closer to the destination</p>
-</li>
-<li><p>the agent should however learn the left turn rule, where it is not allowed to turn left if the oncoming traffic is turning right.</p>
-<p>eg. the agent in a state (left, green, right) should have a heavy penalty on the left action.</p>
+<p>eg. if the light is green then the agent is free to go forward or right.</p>
+<p>('forward', 'green', None)
+-- forward : 2.06
+-- right : 0.70
+-- None : -4.68
+-- left : 0.63</p>
+<p>('right', 'green', None)
+-- forward : 0.33
+-- right : 2.17
+-- None : -4.22
+-- left : 0.94</p>
+<p>This is true in the policy formed.</p>
 </li>
 </ul>
 </li>
 </ol>
-<p>The policy which was created by the learner displays the following states:</p>
-<p>('forward', 'red', 'forward')
- -- forward : -5.16
- -- right : 0.02
- -- None : 2.12
- -- left : -5.19</p>
-<p>('forward', 'green', 'forward')
- -- forward : 1.36
- -- right : 0.40
- -- None : -4.44
- -- left : -10.11</p>
-<p>These seem correct for the reasons stated above.</p>
-<p>('right', 'red', None)
- -- forward : -17.34
- -- right : -3.79
- -- None : 0.95
- -- left : -10.55</p>
-<p>('right', 'red', 'forward')
- -- forward : -9.55
- -- right : -9.19
- -- None : 1.06
- -- left : 0.00</p>
-<p>('right', 'red', 'right')
- -- forward : -4.83
- -- right : -9.39
- -- None : 1.00
- -- left : -19.91</p>
-<p>As stated above, on the red light, when the agent wants to turn right, it has no idea about the right turn rule.</p>
-<p>('left', 'green', 'right')
- -- forward : 0.16
- -- right : 0.05
- -- None : -3.96
- -- left : 0.00</p>
-<p>As stated the agent has effectively learnt the left turning rule here, but it isn't very clear if it was unintentional, this however does obey the traffic safety rule.</p>
 <p>It should be noted that the learner learns very negative rewards for actions that would create a major traffic accident. this is why it has managed to avoid getting into any accident even in the 100 trial run.</p>
 <p>Looking through the learner states, we see that most of the state action pairs have some value, thus the learner did get to notice sufficient states during the exploration state to make informed decisions about the world.</p>
-<p>There are no sub-optimal policies.</p>
+<p>One of the sub optimal policy is:
+('right', 'green', 'right')
+-- forward : 1.00
+-- right : 0.00
+-- None : 0.00
+-- left : -10.30</p>
+<p>When waypoint is right on a green light and oncoming input is also right then the agent should turn right and hence highest Q state should be for right. But this is not happening for the agent.</p>
 
 </div>
 </div>
